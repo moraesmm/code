@@ -94,15 +94,6 @@ def execute(csv_folder, db_host, db_port, db_name, db_usr, db_pwd, db_schema, db
                 batch_nbr=0
 
                 for row in csv_reader:
-<<<<<<< HEAD
-                    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-                    now = f"to_timestamp('{now}', 'YYYY-MM-DD HH24:MI:SS.XFF')"
-                    row = str(row).replace("]","").replace("[","").replace("  ","")
-
-                    # Convert row values to dictionary with column names as keys
-                    row_data = dict(zip(tb_columns.split(', '), row[1:]))
-                    row_data['ROW_INSERTED_DATE'] = now
-=======
                     bind_variables = [f":{i}" for i in range(1, len(row)+1)]
                     bind_variables_string = ", ".join(bind_variables)
                     
@@ -119,7 +110,6 @@ def execute(csv_folder, db_host, db_port, db_name, db_usr, db_pwd, db_schema, db
                             data = []
                         except Exception as e:
                             logging.error(f'Error executing SQL insert: {e}')                                    
->>>>>>> 148a0d8ca6f359d147b7bb9366d087c6a2f4ac49
 
                     # Append data to rows_to_insert list
                     rows_to_insert.append(row_data)

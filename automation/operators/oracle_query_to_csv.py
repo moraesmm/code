@@ -1,14 +1,19 @@
-def execute(db_host, db_port, db_name, db_usr, db_pwd, sql_query, sql_query_params, output_proj, output_name):
-    import os
-    from sqlalchemy import create_engine, text
-    from sqlalchemy.exc import SQLAlchemyError
-    import cx_Oracle
-    import pandas as pd
-    import time
+import os
+import csv
+import cx_Oracle
+from sqlalchemy import create_engine, text
+from sqlalchemy.exc import SQLAlchemyError
+import pandas as pd
+import time
+import logging
 
+# Configure logging
+logging.basicConfig(filename='execute_log.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def execute(db_host, db_port, db_name, db_usr, db_pwd, sql_query, sql_query_params, output_proj, output_name):
     """
     Connects to an Oracle database, executes a SQL query, and saves the results as a CSV file.
-    
+
     Args:
         db_host (str): Oracle host
         db_port (int): Oracle port
@@ -16,11 +21,10 @@ def execute(db_host, db_port, db_name, db_usr, db_pwd, sql_query, sql_query_para
         db_usr (str): Oracle user
         db_pwd (str): Oracle password
         sql_query (str): SQL statement to execute
-        sql_query_params (dict): Dictionary of paramter values for the qury
+        sql_query_params (dict): Dictionary of parameter values for the query
         output_proj (str): Project name, defining where to save
         output_name (str): Output file name
     """
-
     try:
         # Establish database connection
         conn = create_engine(f'oracle+cx_oracle://{db_usr}:{db_pwd}@{db_host}:{db_port}/{db_name}')
@@ -33,24 +37,26 @@ def execute(db_host, db_port, db_name, db_usr, db_pwd, sql_query, sql_query_para
 
     try:
         # Execute the SQL query and save result as CSV
-        data = pd.DataFrame(conn.execute(text(sql_query),sql_query_params))
-        #data = pd.DataFrame(conn.execute(text(sql_query),sql_query_params))
+        data = pd.DataFrame(conn.execute(text(sql_query), sql_query_params))
         # Construct output directory and file name with timestamp
         output_dir = os.path.join('.', 'automation', str(output_proj), 'output',
-                            f'{str(output_name)}_{str(time.strftime("%Y%m%d-%H%M%S"))}.csv')
+                                  f'{str(output_name)}_{str(time.strftime("%Y%m%d-%H%M%S"))}.csv')
         data.to_csv(output_dir, index=False)
+        logging.info(f'Successfully executed and saved results to {output_dir}')
     except SQLAlchemyError as e:
         # Handle SQL execution error
         error = str(e.__dict__['orig'])
-        # Consider logging errors to a log file or system log
-        print(f'######## ERROR!!! ########\nSql statement-> {sql_query}\n{error}\nConnection-> {conn}')
+        # Log the error
+        logging.error(f'Error executing SQL query: {error}')
     finally:
         # Close the database connection
         conn.close()
+        logging.info('Database connection closed')
 
 """
 # Usage example
 if __name__ == '__main__':
+    logging.info('SQL execution script started')
     execute(
         db_host='localhost',
         db_port=1521,
@@ -61,4 +67,5 @@ if __name__ == '__main__':
         output_proj='your_project',
         output_name='output_data'
     )
+    logging.info('SQL execution script completed')
 """

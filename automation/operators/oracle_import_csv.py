@@ -32,7 +32,7 @@ def connect_to_database(db_host, db_port, db_name, db_usr, db_pwd):
         conn = conn.connect()
     return conn
 
-def execute_sql_insert(conn, sql_insert):
+def execute_sql_insert(conn, sql_insert,data):
     """
     Executes a SQL insert statement on the database.
 
@@ -41,7 +41,7 @@ def execute_sql_insert(conn, sql_insert):
         sql_insert (str): The SQL insert statement to execute.
     """
     try:
-        conn.execute(text(sql_insert))
+        conn.execute(sql_insert, data)
     except SQLAlchemyError as e:
         error = str(e.__dict__['orig'])
         logging.error(f'Error executing SQL: {error}')
@@ -64,7 +64,7 @@ def execute(csv_folder, db_host, db_port, db_name, db_usr, db_pwd, db_schema, db
         tb_columns (str): A comma-separated list of columns in the Oracle table.
     """
     # Prepare table columns for SQL insertion
-    tb_columns = str(tb_columns).replace("'", "").replace("[", "").replace("]", "")
+    tb_columns = str(tb_columns).replace("'", "").replace("[", "").replace("]", "") 
 
     # Get a list of CSV files in the specified folder
     csv_files = [file for file in os.listdir(csv_folder) if file.endswith(".csv")]
@@ -76,27 +76,31 @@ def execute(csv_folder, db_host, db_port, db_name, db_usr, db_pwd, db_schema, db
 
     try:
         for csv_file_name in csv_files:
-            csv_path = os.path.join(csv_folder, csv_file_name)
-
-            rows_to_insert = []
+            csv_path = os.path.join(csv_folder, csv_file_name) 
 
             with open(csv_path, "r", encoding="utf-8-sig") as csv_file:
                 csv_reader = csv.reader(csv_file)
                 next(csv_reader)  # Skip header row
+                data = []
+                batch_nbr=0
 
                 for row in csv_reader:
-                    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-                    now = f"to_timestamp('{now}', 'YYYY-MM-DD HH24:MI:SS.XFF')"
-                    row = str(row).replace("]","").replace("[","").replace("  ","")
-
-                    # Construct SQL insert statement
-                    sql_insert = f"INSERT INTO {db_schema}.{db_table} ({tb_columns}) VALUES ('{row[1:]}, {now})"
+                    bind_variables = [f":{i}" for i in range(1, len(row)+1)]
+                    bind_variables_string = ", ".join(bind_variables)
                     
+                    # Construct SQL insert statement
+                    sql_insert = f"INSERT INTO {db_schema}.{db_table} ({tb_columns}) VALUES ({bind_variables_string}, to_timestamp(to_char(sysdate, 'YYYY-MM-DD HH24:MI:SS') ,'YYYY-MM-DD HH24:MI:SS'))"
+                    array_without_whitespace = [element.strip() for element in row]
+
                     # Execute SQL insert statement
-                    try:
-                        execute_sql_insert(conn, sql_insert)
-                    except Exception as e:
-                        logging.error(f'Error executing SQL insert: {e}')                                    
+                    data.append(array_without_whitespace)
+                    if len(data) % 20000 == 0:
+                        try:
+                            execute_sql_insert(conn, sql_insert, data)
+                            batch_nbr += 1
+                            data = []
+                        except Exception as e:
+                            logging.error(f'Error executing SQL insert: {e}')                                    
 
 
     finally:

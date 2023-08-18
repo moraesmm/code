@@ -32,11 +32,7 @@ def connect_to_database(db_host, db_port, db_name, db_usr, db_pwd):
         conn = conn.connect()
     return conn
 
-<<<<<<< HEAD
-def execute_sql_insert(conn, stmt, data):
-=======
 def execute_sql_insert(conn, sql_insert,data):
->>>>>>> 148a0d8ca6f359d147b7bb9366d087c6a2f4ac49
     """
     Executes a bulk insert statement on the database.
 
@@ -46,11 +42,7 @@ def execute_sql_insert(conn, sql_insert,data):
         data (list of dict): List of data rows to insert.
     """
     try:
-<<<<<<< HEAD
-        conn.execute(stmt, data)
-=======
         conn.execute(sql_insert, data)
->>>>>>> 148a0d8ca6f359d147b7bb9366d087c6a2f4ac49
     except SQLAlchemyError as e:
         error = str(e.__dict__['orig'])
         logging.error(f'Error executing SQL: {error}')

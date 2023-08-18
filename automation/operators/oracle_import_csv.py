@@ -1,7 +1,7 @@
 import os
 import csv
 import cx_Oracle
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine,text,insert
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
 import logging
@@ -64,7 +64,7 @@ def execute(csv_folder, db_host, db_port, db_name, db_usr, db_pwd, db_schema, db
         tb_columns (str): A comma-separated list of columns in the Oracle table.
     """
     # Prepare table columns for SQL insertion
-    tb_columns = tb_columns.replace("'", "")
+    tb_columns = str(tb_columns).replace("'", "").replace("[", "").replace("]", "")
 
     # Get a list of CSV files in the specified folder
     csv_files = [file for file in os.listdir(csv_folder) if file.endswith(".csv")]
@@ -78,22 +78,26 @@ def execute(csv_folder, db_host, db_port, db_name, db_usr, db_pwd, db_schema, db
         for csv_file_name in csv_files:
             csv_path = os.path.join(csv_folder, csv_file_name)
 
-            with open(csv_path, "r") as csv_file:
+            rows_to_insert = []
+
+            with open(csv_path, "r", encoding="utf-8-sig") as csv_file:
                 csv_reader = csv.reader(csv_file)
                 next(csv_reader)  # Skip header row
 
                 for row in csv_reader:
                     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
                     now = f"to_timestamp('{now}', 'YYYY-MM-DD HH24:MI:SS.XFF')"
-                    
+                    row = str(row).replace("]","").replace("[","").replace("  ","")
+
                     # Construct SQL insert statement
-                    sql_insert = f"INSERT INTO {db_schema}.{db_table} ({tb_columns}, insertion_timestamp) VALUES ({', '.join(row[1:])}, {now})"
+                    sql_insert = f"INSERT INTO {db_schema}.{db_table} ({tb_columns}) VALUES ('{row[1:]}, {now})"
                     
-                     # Execute SQL insert statement
+                    # Execute SQL insert statement
                     try:
                         execute_sql_insert(conn, sql_insert)
                     except Exception as e:
-                        logging.error(f'Error executing SQL insert: {e}')
+                        logging.error(f'Error executing SQL insert: {e}')                                    
+
 
     finally:
         # Close the database connection

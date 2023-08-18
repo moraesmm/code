@@ -32,16 +32,25 @@ def connect_to_database(db_host, db_port, db_name, db_usr, db_pwd):
         conn = conn.connect()
     return conn
 
+<<<<<<< HEAD
+def execute_sql_insert(conn, stmt, data):
+=======
 def execute_sql_insert(conn, sql_insert,data):
+>>>>>>> 148a0d8ca6f359d147b7bb9366d087c6a2f4ac49
     """
-    Executes a SQL insert statement on the database.
+    Executes a bulk insert statement on the database.
 
     Args:
         conn (Connection): A SQLAlchemy database connection object.
-        sql_insert (str): The SQL insert statement to execute.
+        stmt (Insert): The SQLAlchemy insert statement to execute.
+        data (list of dict): List of data rows to insert.
     """
     try:
+<<<<<<< HEAD
+        conn.execute(stmt, data)
+=======
         conn.execute(sql_insert, data)
+>>>>>>> 148a0d8ca6f359d147b7bb9366d087c6a2f4ac49
     except SQLAlchemyError as e:
         error = str(e.__dict__['orig'])
         logging.error(f'Error executing SQL: {error}')
@@ -85,6 +94,15 @@ def execute(csv_folder, db_host, db_port, db_name, db_usr, db_pwd, db_schema, db
                 batch_nbr=0
 
                 for row in csv_reader:
+<<<<<<< HEAD
+                    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+                    now = f"to_timestamp('{now}', 'YYYY-MM-DD HH24:MI:SS.XFF')"
+                    row = str(row).replace("]","").replace("[","").replace("  ","")
+
+                    # Convert row values to dictionary with column names as keys
+                    row_data = dict(zip(tb_columns.split(', '), row[1:]))
+                    row_data['ROW_INSERTED_DATE'] = now
+=======
                     bind_variables = [f":{i}" for i in range(1, len(row)+1)]
                     bind_variables_string = ", ".join(bind_variables)
                     
@@ -101,6 +119,19 @@ def execute(csv_folder, db_host, db_port, db_name, db_usr, db_pwd, db_schema, db
                             data = []
                         except Exception as e:
                             logging.error(f'Error executing SQL insert: {e}')                                    
+>>>>>>> 148a0d8ca6f359d147b7bb9366d087c6a2f4ac49
+
+                    # Append data to rows_to_insert list
+                    rows_to_insert.append(row_data)
+
+                    if len(rows_to_insert) == 1000:
+                        stmt = insert(your_table)
+                        execute_sql_insert(conn, stmt, rows_to_insert)
+                        rows_to_insert = []
+
+                if rows_to_insert:
+                    stmt = insert(your_table)
+                    execute_sql_insert(conn, stmt, rows_to_insert)                                
 
 
     finally:
